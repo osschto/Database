@@ -12,7 +12,7 @@ from security.security import hash_password, verify_password
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("/reg", summary="Регистрация")
-def register(user : UserReg, db : Session = Depends(get_session)):
+def reg(user : UserReg, db : Session = Depends(get_session)):
     user_db = User(**user.model_dump())
     user_db.hash_password = hash_password(user_db.hash_password)
 
@@ -20,30 +20,29 @@ def register(user : UserReg, db : Session = Depends(get_session)):
     db.commit()
     db.refresh(user_db)
 
-    return f"Пользователь {user_db.name} успешно зарегистрирован"
+    return f"Пользователь <{user_db.name}> успешно зарегистрирован"
 
 @router.post("/auth",  summary="Авторизация")
 def auth(user : UserLog, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.email == user.email)).first()
+    if not user_db or not verify_password(user.hash_password, user_db.hash_password):
+        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    
+    return f"Добро пожаловать, {user_db.name}"
 
-    if verify_password(user.hash_password, user_db.hash_password):
-        return "Вход выполнен"
-    else:
-        return "Неверный email или пароль"
-
-@router.post("{user_id}/cars/{car_id}", summary="Арендовать машину")
-def rental(user_id : int, car_id : int, db : Session = Depends(get_session)):
+@router.post("/{user_id}/cars/{car_id}", summary="Арендовать машину")
+def rental_car(user_id : int, car_id : int, db : Session = Depends(get_session)):
     car_db = db.exec(select(Car).where(Car.id == car_id)).first()
     user_db = db.exec(select(User).where(User.id == user_id)).first()
 
-    if not car_db.available:
-        raise HTTPException(200, "Машина недоступна для взятия")
-    
     if not user_db:
         raise HTTPException(404, "Пользователь не найден")
     
     if not car_db:
         raise HTTPException(404, "Машина не найдена")
+
+    if not car_db.available:
+        raise HTTPException(400, "Машина недоступна для аренды")
     
     new_rental = Rental(
         user_id=user_id,
@@ -56,16 +55,15 @@ def rental(user_id : int, car_id : int, db : Session = Depends(get_session)):
     db.add(new_rental)
     db.commit()
 
-    
     return f"Машина: '{car_db.brand} {car_db.model}' арендована"
 
 @router.get("/", response_model=List[UserGet], summary="Получить список всех пользователей")
-def get(db : Session = Depends(get_session)):
+def get_all_users(db : Session = Depends(get_session)):
     users = db.exec(select(User)).all()
     return users
 
 @router.put("/update/{user_id}", summary="Обновить информацию о пользователе")
-def update(user_id : int, user : UserUpdate, db : Session = Depends(get_session)):
+def update_user(user_id : int, user : UserUpdate, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.id == user_id)).first()
     if not user_db:
         raise HTTPException(404, "Пользователь не найден")
@@ -73,10 +71,10 @@ def update(user_id : int, user : UserUpdate, db : Session = Depends(get_session)
     user_db.email = user.email
     db.commit()
 
-    return "Данные обновлены"
+    return f"Данные пользователя <{user_db.name}> обновлены"
 
 @router.delete("/delete/{user_id}", summary="Удалить пользователя")
-def delete(user_id : int, db : Session = Depends(get_session)):
+def delete_user(user_id : int, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.id == user_id)).first()
     if not user_db:
         raise HTTPException(404, "Пользователь не найден")
@@ -84,4 +82,4 @@ def delete(user_id : int, db : Session = Depends(get_session)):
     db.delete(user_db)
     db.commit()
 
-    return f"Пользователь {user_db.name} успешно удален"
+    return f"Пользователь <{user_db.name}> успешно удален"

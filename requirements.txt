@@ -1,0 +1,6 @@
+fastapi[all]
+sqlmodel
+pydantic-settings
+passlib[bcrypt]
+bcrypt==3.2.2
+sentry-sdk
