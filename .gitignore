@@ -1,3 +1,14 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+db-browser/
+*.exe
+*.dll
+bearer/
+iconengines/
+imageformats/
+platforms/
+printsupport/
+styles/
+translations/
