@@ -10,6 +10,7 @@ from models.schemas import UserLog, UserReg, UserGet, UserUpdate
 from security.security import hash_password, verify_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
+current_user = None
 
 @router.post("/reg", summary="Регистрация")
 def reg(user : UserReg, db : Session = Depends(get_session)):
@@ -25,8 +26,14 @@ def reg(user : UserReg, db : Session = Depends(get_session)):
 @router.post("/auth",  summary="Авторизация")
 def auth(user : UserLog, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.email == user.email)).first()
+    if user_db.email == "admin@example.com":
+        user_db.role = "admin"
+        db.commit()
     if not user_db or not verify_password(user.hash_password, user_db.hash_password):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    
+    global current_user
+    current_user = user_db
     
     return f"Добро пожаловать, {user_db.name}"
 
@@ -65,6 +72,8 @@ def get_all_users(db : Session = Depends(get_session)):
 @router.put("/update/{user_id}", summary="Обновить информацию о пользователе")
 def update_user(user_id : int, user : UserUpdate, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.id == user_id)).first()
+    if current_user.role != "admin":
+        raise HTTPException(403, "Нет прав доступа")
     if not user_db:
         raise HTTPException(404, "Пользователь не найден")
     
@@ -76,6 +85,8 @@ def update_user(user_id : int, user : UserUpdate, db : Session = Depends(get_ses
 @router.delete("/delete/{user_id}", summary="Удалить пользователя")
 def delete_user(user_id : int, db : Session = Depends(get_session)):
     user_db = db.exec(select(User).where(User.id == user_id)).first()
+    if current_user.role != "admin":
+        raise HTTPException(403, "Нет прав доступа")
     if not user_db:
         raise HTTPException(404, "Пользователь не найден")
     

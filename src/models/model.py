@@ -19,6 +19,7 @@ class User(SQLModel, table=True):
     hash_password : str
     phone_number : str
     driver_license_number : str
+    role :  str = Field(default="user")
 
     cars : List["Car"] = Relationship(back_populates="users", link_model=Rental)
 
