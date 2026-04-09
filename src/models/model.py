@@ -35,6 +35,13 @@ class Car(SQLModel, table=True):
     category : Optional["Category"] = Relationship(back_populates="cars")
     users : List["User"] = Relationship(back_populates="cars", link_model=Rental)
 
+class CarInfo(SQLModel, table=True):
+    __tablename__ = "car_price"
+    id : Optional[int] = Field(primary_key=True)
+    brand : str
+    model : str
+    price : int
+
 
 class Category(SQLModel, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)

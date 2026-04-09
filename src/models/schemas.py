@@ -56,5 +56,6 @@ class LocationGet(BaseModel):
     address : str
 
 class CategoryGet(BaseModel):
+    id : int
     classification : str
     price : float

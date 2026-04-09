@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, func
 
 from db.db import get_session
-from models.model import Car, Category
+from models.model import Car, CarInfo, Category
 from models.schemas import CarAdd, CarGet, CarByCategory, CarCountByCategory, CarUpdate
 
 router = APIRouter(prefix="/cars", tags=["Cars"])
@@ -69,6 +69,10 @@ def getcars_count_by_category(category_class : str, db: Session = Depends(get_se
     cars_count = cars.cars_count
     
     return CarCountByCategory(category=category_db.classification, car_count=cars_count)
+
+@router.get("/get_view", summary="Получить представление (view)")
+def get_view(db : Session = Depends(get_session)):
+    return db.exec(select(CarInfo)).all()
 
 @router.put("/update/{car_id}", summary="Обновить информацию о машине")
 def update_car(car_id : int, car : CarUpdate, db : Session = Depends(get_session)):
